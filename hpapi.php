@@ -29,6 +29,17 @@ $dfns = array (
    ,'m'  => 'method'
    ,'a'  => 'JSON ["arg1","arg2",...] args'
 );
+$props   = array ('key','email');
+$mprops  = array ('vendor','package','class','method');
+function usage ($prog,$dfns) {
+    echo "Missing parameter:\n";
+    echo $prog;
+    foreach ($dfns as $k=>$v) {
+        echo " -".$k." [".$v."]";
+    }
+    echo " [hpapi URL]\n";
+}
+
 
 
 // Arguments
@@ -43,11 +54,13 @@ while (1) {
         $url = trim ($argv[0]);
         if (!strlen($url)) {
             echo "Invalid arguments\n";
+            usage ($prog,$dfns);
             exit (103);
         }
         break;
     }
     if ($argv[0]!='-f' && !array_key_exists($k=substr($argv[0],1),$options)) {
+            usage ($prog,$dfns);
         echo "Invalid arguments\n";
         exit (104);
     }
@@ -66,36 +79,21 @@ while (1) {
     }
     array_shift ($argv);
     array_shift ($argv);
-    if (!strlen($options[$k])) {
-        echo "Invalid arguments\n";
-        exit (106);
-    }
-}
-
-foreach ($options as $o) {
-    if (!strlen($o)) {
-        echo "Missing parameters:\n";
-        echo $prog;
-        foreach ($dfns as $k=>$v) {
-            echo " -".$k." [".$v."]";
-        }
-        echo " [hpapi URL]\n";
-        exit (107);
-    }
 }
 
 $object->datetime                   = $dt->format(\DateTime::ATOM);
 if (strlen($options['k'])) {
     $object->key                    = $options['k'];
 }
-$password                           = '';
-if (strlen($options['e'])) {}
+if (strlen($options['e'])) {
+    $password                       = '';
     if (strpos($options['e'],':')!==false) {
         $password                   = explode (':',$options['e']);
         $options['k']               = array_shift ($password);
         $password                   = implode (':',$password);
     }
     $object->email                  = $options['e'];
+    $object->password               = $password;
 }
 if (strlen($password)) {
     $object->password               = $password;
@@ -125,19 +123,46 @@ if (strlen($options['a'])) {
     }
     catch (\Exception $e) {
         echo "Could not JSON decode -a arguments\n";
+        usage ($prog,$dfns);
         exit (108);
     }
 }
-if (!is_array($object->method->arguments)) {
-    echo "object->method->arguments not an array\n";
+foreach ($props as $p) {
+    if (!property_exists($object,$p) || !strlen($object->$p)) {
+        echo "Parameter: object->".$p." not given\n";
+        usage ($prog,$dfns);
+        exit (109);
+    }
+}
+foreach ($mprops as $p) {
+    if (!property_exists($object->method,$p) || !strlen($object->method->$p)) {
+        echo "Parameter: object->method->".$p." not given\n";
+        usage ($prog,$dfns);
+        exit (109);
+    }
+}
+if (!property_exists($object->method,'arguments') || !is_array($object->method->arguments)) {
+    echo "Parameter: object->method->arguments not an array\n";
+    usage ($prog,$dfns);
     exit (109);
 }
 
 if (!strlen($object->password)) {
     echo "Password: ";
     $object->password = exec ('./hpapi-read-s.bash');
+    echo "\n";
 }
 
-echo json_encode ($object,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_NUMERIC_CHECK|JSON_PRETTY_PRINT);
+
+$request    = json_encode ($object,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_NUMERIC_CHECK|JSON_PRETTY_PRINT);
+$out        = realpath(dirname($prog)).'/'.getmypid().'.json';
+$in         = $out.'.request';
+$fp         = fopen ($in,'w');
+fwrite ($fp,$request);
+fclose ($fp);
+exec ('curl --header "Content-Type: application/json; charset=utf8" --data '.escapeshellarg('@'.$in).' --insecure '.escapeshellarg($url).' > '.escapeshellarg($out));
+echo file_get_contents ($out);
+unlink ($in);
+unlink ($out);
 
 ?>
