@@ -8,6 +8,11 @@ if (php_sapi_name()!='cli') {
 
 // Set-up
 $dt  = new \DateTime ();
+$curl = exec ('command -v curl');
+if (!$curl) {
+    echo "curl is not availabe\n";
+    exit (102);
+}
 $object = new \stdClass ();
 $request = null;
 $url = '';
@@ -47,7 +52,7 @@ $prog = $argv[0];
 array_shift ($argv);
 if ((count($argv)%2)==0) {
     echo "Invalid arguments\n";
-    exit (102);
+    exit (103);
 }
 while (1) {
     if (count($argv)==1) {
@@ -55,14 +60,14 @@ while (1) {
         if (!strlen($url)) {
             echo "Invalid arguments\n";
             usage ($prog,$dfns);
-            exit (103);
+            exit (104);
         }
         break;
     }
     if ($argv[0]!='-f' && !array_key_exists($k=substr($argv[0],1),$options)) {
             usage ($prog,$dfns);
         echo "Invalid arguments\n";
-        exit (104);
+        exit (105);
     }
     if ($argv[0]=='-f') {
         try {
@@ -71,7 +76,7 @@ while (1) {
         }
         catch (\Exception $e) {
             echo "Could not JSON decode -f filename\n";
-            exit (105);
+            exit (106);
         }
     }
     else {
@@ -103,7 +108,7 @@ if (!property_exists($object,'method')) {
 }
 elseif (!is_object($object->method)) {
     echo "{ method : ... } is not an object in -f filename\n";
-    exit (108);
+    exit (107);
 }
 if (strlen($options['v'])) {
     $object->method->vendor         = $options['v'];
@@ -138,13 +143,13 @@ foreach ($mprops as $p) {
     if (!property_exists($object->method,$p) || !strlen($object->method->$p)) {
         echo "Parameter: object->method->".$p." not given\n";
         usage ($prog,$dfns);
-        exit (109);
+        exit (110);
     }
 }
 if (!property_exists($object->method,'arguments') || !is_array($object->method->arguments)) {
     echo "Parameter: object->method->arguments not an array\n";
     usage ($prog,$dfns);
-    exit (109);
+    exit (111);
 }
 
 if (!strlen($object->password)) {
@@ -160,7 +165,11 @@ $in         = $out.'.request';
 $fp         = fopen ($in,'w');
 fwrite ($fp,$request);
 fclose ($fp);
-exec ('curl --header "Content-Type: application/json; charset=utf8" --data '.escapeshellarg('@'.$in).' --insecure '.escapeshellarg($url).' > '.escapeshellarg($out));
+exec ('curl --header "Content-Type: application/json; charset=utf8" --data '.escapeshellarg('@'.$in).' --insecure '.escapeshellarg($url).' > '.escapeshellarg($out),$o,$x);
+if ($x>0) {
+    echo "Curl command failed\n";
+    exit (112);
+}
 echo file_get_contents ($out);
 unlink ($in);
 unlink ($out);
