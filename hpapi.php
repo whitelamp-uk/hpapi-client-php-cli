@@ -100,9 +100,6 @@ if (strlen($options['e'])) {
     $object->email                  = $options['e'];
     $object->password               = $password;
 }
-if (strlen($password)) {
-    $object->password               = $password;
-}
 if (!property_exists($object,'method')) {
     $object->method                 = new \stdClass ();
 }
@@ -165,11 +162,15 @@ $in         = $out.'.request';
 $fp         = fopen ($in,'w');
 fwrite ($fp,$request);
 fclose ($fp);
-exec ('curl --header "Content-Type: application/json; charset=utf8" --data '.escapeshellarg('@'.$in).' --insecure '.escapeshellarg($url).' > '.escapeshellarg($out),$o,$x);
+exec ('curl -s --header "Content-Type: application/json; charset=utf8" --data '.escapeshellarg('@'.$in).' --insecure '.escapeshellarg($url).' > '.escapeshellarg($out),$o,$x);
 if ($x>0) {
     echo "Curl command failed\n";
     exit (112);
 }
+
+echo "REQUEST = ";
+echo $request."\n";
+echo "RESPONSE = ";
 echo file_get_contents ($out);
 unlink ($in);
 unlink ($out);

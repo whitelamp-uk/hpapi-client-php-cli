@@ -1,0 +1,13 @@
+{
+    "key" : "20180725104327::0e0f4ce8-8fee-11e8-902b-001f16148bc1",
+    "email" : "sysadmin@no.where",
+    "password" : "password",
+    "datetime": "2018-08-01T18:01:25+01:00",
+    "method": {
+        "vendor": "burden-and-burden",
+        "package": "doorstepper-server",
+        "class": "\\Bab\\Doorstepper",
+        "method": "",
+        "arguments": []
+    }
+}
