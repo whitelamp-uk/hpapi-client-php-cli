@@ -65,12 +65,16 @@ while (1) {
         break;
     }
     if ($argv[0]!='-f' && !array_key_exists($k=substr($argv[0],1),$options)) {
-            usage ($prog,$dfns);
+        usage ($prog,$dfns);
         echo "Invalid arguments\n";
         exit (105);
     }
     if ($argv[0]=='-f') {
         try {
+            if (!is_readable($argv[1])) {
+                echo "Cannot read file '".$argv[1]."'\n";
+                exit (106);
+            }
             $string            = file_get_contents ($argv[1]);
             $object            = json_decode ($string);
         }
@@ -167,10 +171,6 @@ if ($x>0) {
     echo "Curl command failed\n";
     exit (112);
 }
-
-echo "REQUEST = ";
-echo $request."\n";
-echo "RESPONSE = ";
 echo file_get_contents ($out);
 unlink ($in);
 unlink ($out);
