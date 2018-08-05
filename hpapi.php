@@ -77,9 +77,13 @@ while (1) {
             }
             $string            = file_get_contents ($argv[1]);
             $object            = json_decode ($string);
+            if (($err=json_last_error())!=JSON_ERROR_NONE) {
+                throw new \Exception ($err.' '.json_last_error_msg());
+                return false;
+            }
         }
         catch (\Exception $e) {
-            echo "Could not JSON decode -f filename\n";
+            echo "Could not JSON decode -f filename: ".$e."\n";
             exit (106);
         }
     }
@@ -126,9 +130,13 @@ if (strlen($options['m'])) {
 if (strlen($options['a'])) {
     try {
         $object->method->arguments  = json_decode ($options['a']);
+        if (($err=json_last_error())!=JSON_ERROR_NONE) {
+            throw new \Exception ($err.' '.json_last_error_msg());
+            return false;
+        }
     }
     catch (\Exception $e) {
-        echo "Could not JSON decode -a arguments\n";
+        echo "Could not JSON decode -a arguments: ".$e."\n";
         usage ($prog,$dfns);
         exit (108);
     }
@@ -159,17 +167,31 @@ if (!strlen($object->password)) {
     echo "\n";
 }
 
+try {
+    $request    = json_encode ($object,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_NUMERIC_CHECK|JSON_PRETTY_PRINT);
+    if (($err=json_last_error())!=JSON_ERROR_NONE) {
+        throw new \Exception ($err.' '.json_last_error_msg());
+    }
+}
+catch (\Exception $e) {
+    echo "Failed to encode request JSON\n";
+    exit (112);
+}
 
-$request    = json_encode ($object,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_NUMERIC_CHECK|JSON_PRETTY_PRINT);
-$out        = realpath(dirname($prog)).'/'.getmypid().'.json';
-$in         = $out.'.request';
-$fp         = fopen ($in,'w');
+$out            = realpath(dirname($prog)).'/'.getmypid().'.json';
+$in             = $out.'.request';
+$fp             = fopen ($in,'w');
+$insecure       = '';
+if (strpos($url,'https://')===0) {
+    $insecure   = '--insecure';
+}
 fwrite ($fp,$request);
 fclose ($fp);
-exec ('curl -s --header "Content-Type: application/json; charset=utf8" --data '.escapeshellarg('@'.$in).' --insecure '.escapeshellarg($url).' > '.escapeshellarg($out),$o,$x);
+
+exec ('curl -s --header "Content-Type: application/json; charset=utf8" --data '.escapeshellarg('@'.$in).' '.$insecure.' '.escapeshellarg($url).' > '.escapeshellarg($out),$o,$x);
 if ($x>0) {
     echo "Curl command failed\n";
-    exit (112);
+    exit (113);
 }
 echo file_get_contents ($out);
 unlink ($in);
