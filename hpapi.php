@@ -163,7 +163,7 @@ if (!property_exists($object->method,'arguments') || !is_array($object->method->
 
 if (!strlen($object->password)) {
     echo "Password: ";
-    $object->password = exec ('./hpapi-read-s.bash');
+    $object->password = exec ('./.hpapi/hpapi-read-s.bash');
     echo "\n";
 }
 
