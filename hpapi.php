@@ -7,192 +7,99 @@ if (php_sapi_name()!='cli') {
 }
 
 // Set-up
-$dt  = new \DateTime ();
-$curl = exec ('command -v curl');
+$dt             = new \DateTime ();
+$curl           = exec ('command -v curl');
 if (!$curl) {
     echo "curl is not availabe\n";
     exit (102);
 }
-$object = new \stdClass ();
-$request = null;
-$url = '';
-$options = array (
-    'k'  => ''
-   ,'e'  => ''
-   ,'v'  => ''
-   ,'p'  => ''
-   ,'c'  => ''
-   ,'m'  => ''
-   ,'a'  => ''
-);
-$dfns = array (
-    'k'  => 'key'
-   ,'e'  => 'email'
-   ,'v'  => 'vendor'
-   ,'p'  => 'package'
-   ,'c'  => 'class'
-   ,'m'  => 'method'
-   ,'a'  => 'JSON ["arg1","arg2",...] args'
-);
-$props   = array ('key','email');
-$mprops  = array ('vendor','package','class','method');
-function usage ($prog,$dfns) {
-    echo "Missing parameter:\n";
-    echo $prog;
-    foreach ($dfns as $k=>$v) {
-        echo " -".$k." [".$v."]";
-    }
-    echo " [hpapi URL]\n";
-}
-
+$object         = new \stdClass ();
+$request        = null;
+$url            = '';
+$props          = array ('key','email','method');
+$mprops         = array ('vendor','package','class','method','arguments');
 
 
 // Arguments
-$prog = $argv[0];
-array_shift ($argv);
-if ((count($argv)%2)==0) {
-    echo "Invalid arguments\n";
+$prog           = $argv[0];
+if ((count($argv))!==3) {
+    echo $prog.' [JSON file] [hpapi URL]'."\n";
     exit (103);
 }
-while (1) {
-    if (count($argv)==1) {
-        $url = trim ($argv[0]);
-        if (!strlen($url)) {
-            echo "Invalid arguments\n";
-            usage ($prog,$dfns);
-            exit (104);
-        }
-        break;
-    }
-    if ($argv[0]!='-f' && !array_key_exists($k=substr($argv[0],1),$options)) {
-        usage ($prog,$dfns);
-        echo "Invalid arguments\n";
-        exit (105);
-    }
-    if ($argv[0]=='-f') {
-        try {
-            if (!is_readable($argv[1])) {
-                echo "Cannot read file '".$argv[1]."'\n";
-                exit (106);
-            }
-            $string            = file_get_contents ($argv[1]);
-            $object            = json_decode ($string);
-            if (($err=json_last_error())!=JSON_ERROR_NONE) {
-                throw new \Exception ($err.' '.json_last_error_msg());
-                return false;
-            }
-        }
-        catch (\Exception $e) {
-            echo "Could not JSON decode -f filename: ".$e."\n";
-            exit (106);
-        }
-    }
-    else {
-        $options[$k] = trim ($argv[1]);
-    }
-    array_shift ($argv);
-    array_shift ($argv);
-}
+$file           = $argv[1];
+$url            = $argv[2];
 
-$object->datetime                   = $dt->format(\DateTime::ATOM);
-if (strlen($options['k'])) {
-    $object->key                    = $options['k'];
+// Load JSON
+if (!is_readable($file)) {
+    echo $prog.' [JSON file] [hpapi URL]'."\n";
+    echo "Cannot read file '".$file."'\n";
+    exit (104);
 }
-if (strlen($options['e'])) {
-    $password                       = '';
-    if (strpos($options['e'],':')!==false) {
-        $password                   = explode (':',$options['e']);
-        $options['k']               = array_shift ($password);
-        $password                   = implode (':',$password);
+$string         = file_get_contents ($file);
+$object         = json_decode ($string);
+if (($err=json_last_error())!=JSON_ERROR_NONE) {
+    echo $prog.' [JSON file] [hpapi URL]'."\n";
+    echo "Could not decode JSON in '".$file."'\n";
+    exit (105);
+}
+foreach ($props as $p) {
+    if (!property_exists($object,$p)) {
+        echo "JSON property '".$p."'' was not given\n";
+        exit (106);
     }
-    $object->email                  = $options['e'];
-    $object->password               = $password;
 }
-if (!property_exists($object,'method')) {
-    $object->method                 = new \stdClass ();
-}
-elseif (!is_object($object->method)) {
-    echo "{ method : ... } is not an object in -f filename\n";
+if (!is_object($object->method)) {
+    echo "JSON property 'method' is not an object\n";
     exit (107);
 }
-if (strlen($options['v'])) {
-    $object->method->vendor         = $options['v'];
-}
-if (strlen($options['p'])) {
-    $object->method->package        = $options['p'];
-}
-if (strlen($options['c'])) {
-    $object->method->class          = $options['c'];
-}
-if (strlen($options['m'])) {
-    $object->method->method         = $options['m'];
-}
-if (strlen($options['a'])) {
-    try {
-        $object->method->arguments  = json_decode ($options['a']);
-        if (($err=json_last_error())!=JSON_ERROR_NONE) {
-            throw new \Exception ($err.' '.json_last_error_msg());
-            return false;
-        }
-    }
-    catch (\Exception $e) {
-        echo "Could not JSON decode -a arguments: ".$e."\n";
-        usage ($prog,$dfns);
+foreach ($mprops as $p) {
+    if (!property_exists($object->method,$p)) {
+        echo "JSON property method->".$p." was not given\n";
         exit (108);
     }
 }
-foreach ($props as $p) {
-    if (!property_exists($object,$p) || !strlen($object->$p)) {
-        echo "Parameter: object->".$p." not given\n";
-        usage ($prog,$dfns);
-        exit (109);
-    }
-}
-foreach ($mprops as $p) {
-    if (!property_exists($object->method,$p) || !strlen($object->method->$p)) {
-        echo "Parameter: object->method->".$p." not given\n";
-        usage ($prog,$dfns);
-        exit (110);
-    }
-}
-if (!property_exists($object->method,'arguments') || !is_array($object->method->arguments)) {
-    echo "Parameter: object->method->arguments not an array\n";
-    usage ($prog,$dfns);
-    exit (111);
+if (!is_array($object->method->arguments)) {
+    echo "JSON property method->arguments is not an array\n";
+    exit (109);
 }
 
-if (!strlen($object->password)) {
+// Add interactive password to object
+if (!property_exists($object,'password')) {
     echo "Password: ";
     $object->password = exec ('./.hpapi/hpapi-read-s.bash');
     echo "\n";
 }
 
-try {
-    $request    = json_encode ($object,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_NUMERIC_CHECK|JSON_PRETTY_PRINT);
-    if (($err=json_last_error())!=JSON_ERROR_NONE) {
-        throw new \Exception ($err.' '.json_last_error_msg());
-    }
-}
-catch (\Exception $e) {
+// Add datetime to object
+$object->datetime  = $dt->format(\DateTime::ATOM);
+
+
+// Create JSON string
+$request           = json_encode ($object,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_NUMERIC_CHECK);
+if (($err=json_last_error())!=JSON_ERROR_NONE) {
     echo "Failed to encode request JSON\n";
-    exit (112);
+    exit (110);
 }
 
-$out            = realpath(dirname($prog)).'/'.getmypid().'.json';
-$in             = $out.'.request';
-$fp             = fopen ($in,'w');
-$insecure       = '';
-if (strpos($url,'https://')===0) {
-    $insecure   = '--insecure';
-}
+// Define response file and write input file
+$out               = realpath(dirname($prog)).'/'.getmypid().'.json';
+$in                = $out.'.request';
+$fp                = fopen ($in,'w');
 fwrite ($fp,$request);
 fclose ($fp);
 
+// Execute curl
+$insecure          = '';
+if (strpos($url,'https://')===0) {
+    $insecure      = '--insecure';
+}
 exec ('curl -s --header "Content-Type: application/json; charset=utf8" --data '.escapeshellarg('@'.$in).' '.$insecure.' '.escapeshellarg($url).' > '.escapeshellarg($out),$o,$x);
 if ($x>0) {
     echo "Curl command failed\n";
-    exit (113);
+    exit (111);
 }
+
+// Give response and delete temporary files
 echo file_get_contents ($out);
 unlink ($in);
 unlink ($out);
