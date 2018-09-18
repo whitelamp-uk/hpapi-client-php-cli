@@ -66,13 +66,12 @@ if (!is_array($object->method->arguments)) {
 // Add interactive password to object
 if (!property_exists($object,'password')) {
     echo "Password: ";
-    $object->password = exec ('./.hpapi/hpapi-read-s.bash');
+    $object->password = exec (dirname($prog).'/.hpapi/hpapi-read-s.bash');
     echo "\n";
 }
 
 // Add datetime to object
 $object->datetime  = $dt->format(\DateTime::ATOM);
-
 
 // Create JSON string
 $request           = json_encode ($object,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_NUMERIC_CHECK);
@@ -82,7 +81,7 @@ if (($err=json_last_error())!=JSON_ERROR_NONE) {
 }
 
 // Define response file and write input file
-$out               = realpath(dirname($prog)).'/'.getmypid().'.json';
+$out               = realpath (dirname($prog)).'/'.getmypid().'.json';
 $in                = $out.'.request';
 $fp                = fopen ($in,'w');
 fwrite ($fp,$request);
