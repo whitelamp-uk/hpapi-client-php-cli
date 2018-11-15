@@ -64,7 +64,7 @@ if (!is_array($object->method->arguments)) {
 }
 
 // Add interactive password to object
-if (!property_exists($object,'password')) {
+if (property_exists($object,'password') && strlen($object->password)==0) {
     echo "Password: ";
     $object->password = exec (dirname($prog).'/.hpapi/hpapi-read-s.bash');
     echo "\n";
