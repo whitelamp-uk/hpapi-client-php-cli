@@ -1,5 +1,7 @@
 <?php
 
+/* Copyright 2018 Whitelamp http://www.whitelamp.com/ */
+
 // CLI check
 if (php_sapi_name()!='cli') {
     echo "CLI only\n";
