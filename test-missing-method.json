@@ -1,0 +1,16 @@
+{
+    "txnid": "hpapi-test-missing-method",
+    "key": "0e0f4ce8-8fee-11e8-902b-001f16148bc1",
+    "email": "sysadmin@no.where",
+    "password": "password",
+    "method": {
+        "vendor": "whitelamp-uk",
+        "package": "hpapi-utility",
+        "class": "\\Hpapi\\Utility",
+        "method": "fwoopdedoo",
+        "arguments": [
+            "20171231",
+            "235959"
+        ]
+    }
+}
