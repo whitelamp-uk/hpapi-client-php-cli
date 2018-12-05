@@ -18,7 +18,7 @@ if (!$curl) {
 $object         = new \stdClass ();
 $request        = null;
 $url            = '';
-$props          = array ('key','email','method');
+$props          = array ('email','method');
 $mprops         = array ('vendor','package','class','method','arguments');
 
 
