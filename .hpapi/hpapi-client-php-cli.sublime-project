@@ -1,0 +1,10 @@
+{
+    "folders":
+    [
+        {
+            "path": "~/hpapi/whitelamp-uk/hpapi-client-php-cli",
+            "file_include_patterns": ["LICENSE","*.EXAMPLE","*.md","*.php","*.json","*.bash"],
+            "file_exclude_patterns": [".git*","*.sublime-*"]
+        }
+    ]
+}
